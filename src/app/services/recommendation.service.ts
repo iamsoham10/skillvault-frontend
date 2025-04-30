@@ -8,7 +8,7 @@ import { HttpClient } from '@angular/common/http';
 })
 export class RecommendationService {
   private readonly RECOMMENDATION_URL =
-    'http://127.0.0.1:3000/api/recommend/send-resources';
+    'https://skillvault-backend-hnww.onrender.com/api/recommend/send-resources';
   private http = inject(HttpClient);
   getRecommendations(
     collection_id: string
