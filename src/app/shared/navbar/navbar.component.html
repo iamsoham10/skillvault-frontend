@@ -1,0 +1,15 @@
+<nav
+  class="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-4 py-3 backdrop-blur-md"
+>
+  <h1 class="text-4xl font-primary font-bold text-accent">SkillVault</h1>
+  <button class="mt-2">
+    <p-avatar
+      image="{{ profileImageUrl }}"
+      class="mr-2"
+      size="large"
+      shape="circle"
+      styleClass="hover:shadow-full hover:shadow-white"
+      (click)="goToUpload()"
+    />
+  </button>
+</nav>

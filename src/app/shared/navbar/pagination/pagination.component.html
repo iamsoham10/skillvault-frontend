@@ -1,0 +1,11 @@
+<div class="card flex justify-center">
+  <p-paginator
+    styleClass="!bg-subbackground !rounded-full !mb-8"
+    (onPageChange)="onPageChange($event)"
+    [first]="first"
+    [rows]="rows"
+    [totalRecords]="totalRecords"
+    [showPageLinks]="true"
+    [pageLinkSize]="3"
+  />
+</div>

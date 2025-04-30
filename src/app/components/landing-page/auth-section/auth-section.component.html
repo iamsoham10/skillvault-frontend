@@ -1,0 +1,166 @@
+<p-dialog
+  [(visible)]="visible"
+  [modal]="true"
+  maskStyleClass="backdrop-blur-sm"
+  styleClass="!border-0 !bg-transparent"
+>
+  <div
+    *ngIf="!showOtpForm"
+    class="flex flex-col px-8 py-8 gap-6 rounded-2xl bg-gradient-to-br from-secondary to-accent"
+  >
+    <!-- Title -->
+    <p class="text-3xl font-bold text-text font-primary text-center">
+      {{ isLoginMode ? "Sign In" : "Sign Up" }}
+    </p>
+
+    <!-- Login Form -->
+    <form
+      [formGroup]="loginForm"
+      (ngSubmit)="onLoginSubmit()"
+      *ngIf="isLoginMode"
+      class="flex flex-col gap-6"
+    >
+      <div class="inline-flex flex-col gap-2">
+        <label for="login-email" class="text-primary-50 font-semibold"
+          >Email</label
+        >
+        <input
+          formControlName="email"
+          pInputText
+          id="login-email"
+          class="!bg-white !border-0 !text-black w-80"
+        />
+      </div>
+      <div class="inline-flex flex-col gap-2">
+        <label class="text-primary-50 font-semibold">Password</label>
+        <p-password
+          formControlName="password"
+          [style]="{ width: '100%' }"
+          [inputStyle]="{ width: '100%' }"
+          [feedback]="false"
+          [toggleMask]="true"
+        />
+      </div>
+      <!-- Show error messages dynamically -->
+      <p
+        *ngIf="loginErrorMessage()"
+        class="text-red-500 text-md font-semibold text-center"
+      >
+        Login Failed
+      </p>
+      <!-- Toggle Link -->
+      <div class="text-text pl-2 text-sm text-center font-primary">
+        <span>
+          {{
+            isLoginMode ? "Don't have an account?" : "Already have an account?"
+          }}
+          <a
+            (click)="toggleMode()"
+            class="text-subbackground font-bold cursor-pointer hover:text-white"
+          >
+            {{ isLoginMode ? "Sign Up" : "Login" }}
+          </a>
+        </span>
+      </div>
+      <p-button
+        label="Sign In"
+        type="submit"
+        [text]="true"
+        styleClass="!text-background !w-full !border !border-text !text-lg !font-primary"
+        class="w-full font-bold active:scale-95 transition-transform"
+      />
+      <div *ngIf="loginLoading()" class="card flex justify-center">
+        <p-progress-spinner
+          strokeWidth="8"
+          fill="transparent"
+          animationDuration=".5s"
+          [style]="{ width: '25px', height: '25px' }"
+        />
+      </div>
+    </form>
+
+    <!-- Sign Up Form -->
+    <form
+      [formGroup]="signUpForm"
+      (ngSubmit)="onSignUpSubmit()"
+      *ngIf="!isLoginMode"
+      class="flex flex-col gap-6"
+    >
+      <div class="inline-flex flex-col gap-2">
+        <label for="signup-username" class="text-primary-50 font-semibold"
+          >Username</label
+        >
+        <input
+          formControlName="username"
+          pInputText
+          id="signup-username"
+          class="!bg-white !border-0 !text-black w-80"
+        />
+      </div>
+      <div class="inline-flex flex-col gap-2">
+        <label for="signup-email" class="text-primary-50 font-semibold"
+          >Email</label
+        >
+        <input
+          formControlName="email"
+          pInputText
+          id="signup-email"
+          class="!bg-white !border-0!text-black w-80"
+        />
+      </div>
+      <div class="inline-flex flex-col gap-2">
+        <label class="text-primary-50 font-semibold">Password</label>
+        <p-password
+          formControlName="password"
+          [toggleMask]="true"
+          [style]="{ width: '100%' }"
+          [inputStyle]="{ width: '100%' }"
+          placeholder="Set a password"
+          styleClass="!bg-transparent"
+        />
+      </div>
+      <!-- Show error messages dynamically -->
+      <p
+        *ngIf="signUpErrorMessage()"
+        class="text-red-500 text-md font-semibold text-center"
+      >
+        SignUp Failed
+      </p>
+      <!-- Toggle Link -->
+      <div class="text-text pl-2 text-sm text-center font-primary">
+        <span>
+          {{
+            isLoginMode ? "Don't have an account?" : "Already have an account?"
+          }}
+          <a
+            (click)="toggleMode()"
+            class="text-subbackground font-bold cursor-pointer hover:text-white"
+          >
+            {{ isLoginMode ? "Sign Up" : "Sign In" }}
+          </a>
+        </span>
+      </div>
+      <p-button
+        label="Sign Up"
+        type="submit"
+        [text]="true"
+        styleClass="!text-background !w-full !border !border-text !text-lg !font-primary"
+        class="w-full font-bold active:scale-95 transition-transform"
+      />
+      <div *ngIf="signUpLoading()" class="card flex justify-center">
+        <p-progress-spinner
+          strokeWidth="8"
+          fill="transparent"
+          animationDuration=".5s"
+          [style]="{ width: '25px', height: '25px' }"
+        />
+      </div>
+    </form>
+  </div>
+  <div
+    *ngIf="showOtpForm"
+    class="flex flex-col gap-6 rounded-2xl bg-gradient-to-br from-secondary to-accent"
+  >
+    <app-otp-section></app-otp-section>
+  </div>
+</p-dialog>

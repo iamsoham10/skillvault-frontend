@@ -1,0 +1,151 @@
+<div class="bg-gradient-to-br from-slate-800 to-gray-900 min-h-screen">
+  <app-navbar></app-navbar>
+  <div class="flex px-28">
+    <app-search-resource
+      class="flex-grow"
+      [userCollection_id]="collection_ID"
+      (searchResults)="onSearchResults($event)"
+    ></app-search-resource>
+    <app-add-resource
+      [userCollection_ID]="collection_ID"
+      (addNewResource)="onResourceAdded($event)"
+    ></app-add-resource>
+  </div>
+  <div *ngIf="isResourcesLoading()" class="text-center">
+    <p-progress-spinner
+      strokeWidth="8"
+      fill="transparent"
+      animationDuration=".5s"
+      [style]="{ width: '25px', height: '25px' }"
+    />
+  </div>
+  <div
+    *ngIf="
+      !isResourcesLoading() &&
+      (userResources()?.length === 0 || userResources() === undefined)
+    "
+    class="mt-12 text-center"
+  >
+    <p class="text-2xl font-semibold text-text">No Resources Found</p>
+  </div>
+  <main
+    class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 py-20 px-24"
+  >
+    <div
+      *ngFor="let resource of userResources(); let i = index"
+      class="mb-8 break-inside-avoid group relative animate-fadeInFromBottom"
+    >
+      <!-- Card container -->
+      <div class="rounded-lg overflow-hidden relative group">
+        <!-- Image container with consistent height -->
+        <a
+          [href]="resource.url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="block"
+        >
+          <div
+            [ngClass]="{
+              'h-auto': i % 3 !== 0,
+              'h-[400px]': i % 3 === 0
+            }"
+            class="overflow-hidden"
+          >
+            <!-- Image -->
+            <img
+              [src]="resource.thumbnail"
+              [alt]="resource.title"
+              loading="lazy"
+              class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+            <!-- Title overlay -->
+            <p
+              class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent text-white text-sm font-primary font-bold p-2"
+            >
+              {{ resource.title }}
+            </p>
+          </div>
+        </a>
+        <div
+          class="absolute inset-0 bg-black bg-opacity-75 text-white flex items-center justify-center text-center opacity-0 transition-opacity duration-300 group-hover:opacity-100 p-4 pointer-events-none"
+        >
+          <p class="text-sm">{{ resource.domain }}</p>
+        </div>
+      </div>
+      <p class="text-sm text-gray-400 pl-2 line-clamp-1">
+        {{ resource.description }}
+      </p>
+      <!-- Inside your *ngFor resource card, after the image/title block -->
+      <div
+        class="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pt-2"
+      >
+        <p-button
+          (click)="openResourceDrawer(resource)"
+          styleClass="!h-8 !w-8 !rounded-full !text-black !bg-white !border-none"
+          [ngStyle]="{ color: '#333' }"
+          pTooltip="Edit Resource"
+        >
+          <fa-icon [icon]="faEdit"></fa-icon>
+        </p-button>
+      </div>
+      <!-- Tags below the image -->
+      <div class="flex flex-wrap gap-2 mt-2">
+        <span
+          *ngFor="let tag of resource.tags"
+          class="bg-accent text-black font-secondary text-xs font-medium px-3 py-1 rounded-full shadow-md"
+        >
+          {{ tag }}
+        </span>
+      </div>
+    </div>
+  </main>
+  <app-pagination
+    [totalRecords]="totalResources()"
+    (pageChange)="loadPage($event)"
+  ></app-pagination>
+</div>
+<!-- Recommended Resources Section -->
+<div class="px-4 md:px-24 py-12 bg-slate-800">
+  <h2 class="text-2xl md:text-3xl font-bold mb-8 text-accent">Recommended for You</h2>
+  <button class="px-4 py-2 bg-accent text-text rounded-md hover:opacity-80 active:scale-95 transition-all mb-8"
+  (click)="fetchRecommendations()"
+  >Get Recommendations</button>
+  <div *ngIf="isRecommendationsLoading()" class="text-center">
+    <p-progress-spinner
+      strokeWidth="8"
+      fill="transparent"
+      animationDuration=".5s"
+      [style]="{ width: '25px', height: '25px' }"
+    />
+  </div>
+  <div class="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+    <div
+      *ngFor="let rec of recommendedResources()"
+      class="bg-subbackground hover:opacity-80 transition-colors p-6 rounded-2xl shadow-md flex flex-col justify-between"
+    >
+      <a
+        [href]="rec.link"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="block text-lg md:text-xl font-semibold text-text hover:underline hover:text-accent transition-colors mb-4"
+      >
+        {{ rec.title }}
+      </a>
+    </div>
+  </div>
+</div>
+
+
+<p-drawer
+  header="Edit Resource"
+  [(visible)]="drawerVisible"
+  position="right"
+  styleClass="!w-full md:!w-80 lg:!w-[30rem] !bg-gray-900 !border-none !text-text"
+>
+  <app-resource-drawer
+    [resource]="selectedResource"
+    (saveResource)="onSaveResource($event)"
+    (deleteResource)="onDeleteResource()"
+  ></app-resource-drawer>
+</p-drawer>
+<p-toast position="bottom-right" key="br" />

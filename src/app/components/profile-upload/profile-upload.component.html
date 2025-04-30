@@ -1,0 +1,91 @@
+<nav class="relative bg-background font-primary h-16">
+  <div
+    class="pl-6 pt-2 flex justify-start items-center text-4xl md:text-4xl sm:text-3xl font-bold text-text"
+  >
+    SkillVault
+  </div>
+</nav>
+
+<div
+  class="flex items-center justify-center min-h-screen font-primary bg-background"
+>
+  <div
+    class="bg-subbackground px-5 py-12 rounded-lg shadow-md text-center mb-20"
+  >
+    <h2 class="text-xl font-bold text-accent">Set Your Profile Picture</h2>
+    <p class="text-gray-400 text-sm mt-1">
+      Choose a profile picture to personalize your account
+    </p>
+
+    <div class="mt-4">
+      <div
+        class="w-28 h-28 mx-auto rounded-full border border-gray-300 flex items-center justify-center bg-gray-100 overflow-hidden"
+      >
+        <img
+          *ngIf="selectedImage"
+          [src]="selectedImage"
+          alt="Selected profile picture"
+          class="w-full h-full object-cover"
+        />
+        <svg
+          *ngIf="!selectedImage"
+          class="w-12 h-12 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+          />
+        </svg>
+      </div>
+
+      <input
+        type="file"
+        #fileInput
+        (change)="onFileSelected($event)"
+        accept="image/*"
+        style="display: none"
+      />
+
+      <button
+        class="mt-4 px-4 py-2 w-28 text-sm font-medium text-gray-400 border border-gray-300 rounded-lg hover:opacity-70 transition"
+        (click)="onUploadClick()"
+      >
+        <fa-icon [icon]="faUpload"></fa-icon>
+        Upload
+      </button>
+
+      <button
+        class="mt-4 ml-4 px-4 py-2 w-28 text-sm font-medium text-gray-400 border border-gray-300 rounded-lg hover:opacity-70 transition"
+        (click)="onRemoveClick()"
+      >
+        Remove
+      </button>
+    </div>
+    <button
+      class="w-full mt-6 px-4 py-2 text-white bg-accent rounded-lg"
+      (click)="onSaveClick()"
+    >
+      @if (imageUploadLoading()) {
+      <p-progress-spinner
+        strokeWidth="8"
+        fill="transparent"
+        animationDuration=".5s"
+        [style]="{ width: '25px', height: '30px' }"
+      />
+      } @else { Save Profile Picture }
+    </button>
+
+    <button
+      class="w-full mt-4 px-4 py-2 text-sm rounded-lg text-gray-400 hover:bg-gray-800 transition"
+      (click)="onSkipForNow()"
+    >
+      Skip for Now
+    </button>
+  </div>
+</div>

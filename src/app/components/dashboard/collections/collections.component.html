@@ -1,0 +1,123 @@
+<div class="flex justify-between items-center px-28 pt-28">
+  <app-search
+    class="flex-grow"
+    (searchResults)="updateCollections($event)"
+  ></app-search>
+  <app-add-collection
+    (addNewCollection)="onCollectionAdded($event)"
+  ></app-add-collection>
+</div>
+<div class="p-6 md:p-8 lg:p-10 font-primary">
+  <div *ngIf="isLoading()" class="mt-12 text-center">
+    <p-progress-spinner
+      strokeWidth="8"
+      fill="transparent"
+      animationDuration=".5s"
+      [style]="{ width: '25px', height: '25px' }"
+    />
+  </div>
+  <div
+    *ngIf="
+      !isLoading() &&
+      (collections()?.length === 0 || collections() === undefined)
+    "
+    class="mt-12 text-center"
+  >
+    <p class="text-2xl font-semibold text-text">No Collections Found</p>
+  </div>
+  <!-- Grid Layout -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 p-6">
+    <!-- Collection Card -->
+    <div
+      *ngFor="let collection of collections()"
+      class="flex flex-col bg-subbackground rounded-xl p-6 hover:shadow-xl hover:shadow-accent transition-shadow duration-500 h-[220px] relative"
+    >
+      <!-- Title Section -->
+      <div class="flex justify-between items-start flex-grow">
+        <a
+          class="text-xl font-semibold text-text line-clamp-2 hover:cursor-pointer"
+          (click)="showResources(collection)"
+        >
+          {{ collection.title }}
+        </a>
+        <div class="card flex justify-center text-text">
+          <button
+            class="w-8 h-8 hover:bg-accent rounded-full flex items-center justify-center transition-colors"
+            (click)="toggleMenu(collection.title)"
+          >
+            <fa-icon [icon]="faDotCircle" class="text-md"></fa-icon>
+          </button>
+          <!-- Native Menu -->
+          <div
+            *ngIf="openMenu === collection.title"
+            class="absolute ml-32 mt-8 bg-surface bg-background rounded-lg shadow-lg w-40 z-50"
+          >
+            <button
+              class="w-full px-4 py-2 text-left hover:bg-accent flex items-center gap-2 rounded-md"
+              (click)="op.toggle($event)"
+            >
+              <fa-icon [icon]="faShare"></fa-icon> Share
+            </button>
+            <p-popover #op styleClass="!bg-background">
+              <div class="flex flex-col gap-6 w-[25rem]">
+                <div>
+                  <span class="text-text py-4 font-bold font-primary"
+                    >Share with Member</span
+                  >
+                  <div class="flex">
+                    <p-inputgroup styleClass="!mt-2">
+                      <input
+                        pInputText
+                        [(ngModel)]="shareEmail"
+                        required
+                        type="email"
+                        placeholder="Enter email of user"
+                      />
+                    </p-inputgroup>
+                  </div>
+                </div>
+                <p-select
+                  [options]="roles"
+                  [(ngModel)]="selectedRole"
+                  optionLabel="type"
+                  placeholder="Select the role"
+                  class="w-full"
+                />
+                <div class="text-center">
+                  <p-button
+                    styleClass="!bg-accent !text-white !px-5 !font-semibold !rounded-lg"
+                    (onClick)="shareCollection(collection._id, shareEmail!, selectedRole?.type!)"
+                    [disabled]="!shareEmail || !selectedRole"
+                  >
+                    <fa-icon [icon]="faShare"></fa-icon>
+                    <span class="font-primary">Share</span>
+                  </p-button>
+                </div>
+              </div>
+            </p-popover>
+            <button
+              class="w-full px-4 py-2 text-left hover:bg-accent flex items-center gap-2 rounded-md"
+              (click)="deleteCollection(collection)"
+            >
+              <fa-icon [icon]="faTrash"></fa-icon> Delete
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resources Count Badge -->
+      <div class="mt-auto">
+        <span
+          class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium text-white bg-accent"
+        >
+          {{ collection.resources.length }} Resources
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+<app-pagination
+  [totalRecords]="totalRecords()"
+  (pageChange)="loadPage($event)"
+></app-pagination>
+<p-toast position="bottom-right" key="br" />

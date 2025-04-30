@@ -1,0 +1,28 @@
+<div class="flex justify-between items-center w-full max-w-6xl mx-auto">
+  <form
+    [formGroup]="searchForm"
+    (ngSubmit)="onSearchSubmit()"
+    class="relative group flex-1 mr-8"
+  >
+    <input
+      type="text"
+      formControlName="searchTerm"
+      placeholder="Search collections..."
+      class="w-full bg-subbackground text-text placeholder-gray-400 rounded-full px-12 py-3 border-2 border-transparent focus:border-accent outline-none transition-all duration-300 hover:shadow-lg hover:shadow-accent/20"
+    />
+    <div
+      class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-accent transition-colors duration-300"
+    >
+      <fa-icon [icon]="faSearch" class="text-lg"></fa-icon>
+    </div>
+    <button
+      *ngIf="searchForm.get('searchTerm')?.value"
+      type="button"
+      class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors duration-300 p-1 w-9 rounded-full hover:bg-zinc-500"
+      (click)="clearSearch()"
+    >
+      <fa-icon [icon]="faCancel" class="text-xl"></fa-icon>
+    </button>
+  </form>
+  <div class="card flex justify-center"></div>
+</div>

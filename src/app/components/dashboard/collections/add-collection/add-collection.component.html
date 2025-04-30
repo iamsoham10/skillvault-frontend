@@ -1,0 +1,41 @@
+<p-button
+  (click)="showDialog()"
+  pTooltip="New Collection"
+  styleClass="!bg-accent !h-12 !w-12 !rounded-full"
+>
+  <fa-icon [icon]="faAdd"></fa-icon>
+</p-button>
+<p-dialog
+  header="New Collection"
+  [modal]="true"
+  [(visible)]="visible"
+  [style]="{ width: '25rem' }"
+  styleClass="!font-primary"
+>
+  <form
+    [formGroup]="collectionForm"
+    (ngSubmit)="onCollectionSubmit()"
+    class="flex> flex-col gap-6"
+  >
+    <div class="flex items-center mb-8">
+      <label for="username" class="font-semibold w-16">Title</label>
+      <input
+        form
+        formControlName="title"
+        pInputText
+        id="username"
+        class="flex-auto"
+        autocomplete="off"
+      />
+    </div>
+    <div class="text-center">
+      <p-button
+        label="Save"
+        type="submit"
+        styleClass="!bg-accent !h-10 !w-24"
+      />
+    </div>
+  </form>
+  <div class="card flex justify-center"></div>
+</p-dialog>
+<p-toast position="bottom-right" key="br" />

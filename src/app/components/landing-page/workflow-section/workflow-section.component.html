@@ -1,0 +1,59 @@
+<section id="working-of-skillvault" class="bg-background pb-20">
+  @defer (on viewport) {
+  <div
+    class="flex justify-center items-center pt-24"
+    pAnimateOnScroll
+    enterClass="animate-enter fade-in-10 slide-in-from-b-8 animate-duration-1000"
+    leaveClass="animate-leave fade-out-0"
+  >
+    <p-chip
+      styleClass="!font-secondary !text-white !text-lg md:!text-xl !bg-secondary"
+      label="How It Works"
+    />
+  </div>
+  <div
+    class="flex flex-col items-center justify-center mt-10 mb-16 px-4"
+    pAnimateOnScroll
+    enterClass="animate-enter fade-in-10 slide-in-from-b-8 animate-duration-1000"
+    leaveClass="animate-leave fade-out-0"
+  >
+    <p
+      class="relative font-primary text-2xl md:text-4xl text-text font-bold text-center"
+    >
+      How SkillVault <span class="text-accent">Works</span>
+    </p>
+    <p
+      class="relative text-text text-lg md:text-2xl mt-4 font-primary font-semibold text-center px-20"
+    >
+      Our intuitive platform makes organizing and accessing your learning
+      resources simpler than ever before.
+    </p>
+  </div>
+
+  <div class="card">
+    <p-timeline
+      [value]="events"
+      align="alternate"
+      styleClass="customized-timeline"
+    >
+      <ng-template #marker let-event>
+        <span
+          class="flex w-8 h-8 items-center justify-center text-white rounded-full z-10 shadow-sm"
+          [style.background-color]="event.color"
+        >
+        </span>
+      </ng-template>
+      <ng-template #content let-event>
+        <p-card
+          [header]="event.status"
+          [subheader]="event.info"
+          styleClass="!py-4 !bg-subbackground !text-text"
+        >
+        </p-card>
+      </ng-template>
+    </p-timeline>
+  </div>
+  } @placeholder {
+  <div>Incomming...</div>
+  }
+</section>

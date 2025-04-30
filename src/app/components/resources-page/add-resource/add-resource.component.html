@@ -1,0 +1,55 @@
+<p-button
+  (click)="showDialog()"
+  pTooltip="New Resource"
+  styleClass="!bg-accent !h-12 !w-12 !rounded-full !mt-28"
+>
+  <fa-icon [icon]="faAdd"></fa-icon>
+</p-button>
+
+<p-dialog
+  header="New Resource"
+  [modal]="true"
+  [(visible)]="visible"
+  [style]="{ width: '30rem' }"
+>
+  <form
+    [formGroup]="resourceForm"
+    (ngSubmit)="onResourceSubmit()"
+    class="flex flex-col gap-6"
+  >
+    <div class="flex items-center">
+      <label class="font-semibold w-24">Title</label>
+      <input pInputText formControlName="title" class="flex-auto" />
+    </div>
+
+    <div class="flex items-center">
+      <label class="font-semibold w-24">URL</label>
+      <input pInputText formControlName="url" class="flex-auto" />
+    </div>
+
+    <div class="flex items-center">
+      <label class="font-semibold w-24">Description</label>
+      <input pInputText formControlName="description" class="flex-auto" />
+    </div>
+
+    <div class="flex items-center">
+      <label class="font-semibold w-24">Tags</label>
+      <input
+        pInputText
+        formControlName="tags"
+        class="flex-auto"
+        placeholder="Comma-separated tags"
+      />
+    </div>
+
+    <div class="text-center mt-4">
+      <p-button
+        label="Save"
+        type="submit"
+        styleClass="!bg-accent !h-10 !w-24"
+      />
+    </div>
+  </form>
+</p-dialog>
+
+<p-toast position="bottom-right" key="br" />

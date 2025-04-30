@@ -1,0 +1,80 @@
+<section id="use-cases" class="bg-subbackground pb-24 overflow-x-hidden">
+  @defer (on viewport) {
+    <div
+      class="flex justify-center items-center pt-24"
+      pAnimateOnScroll
+      enterClass="animate-enter fade-in-10 slide-in-from-b-8 animate-duration-1000"
+      leaveClass="animate-leave fade-out-0"
+    >
+      <p-chip
+        styleClass="!font-secondary !text-white !text-xl !bg-secondary"
+        label="Use Cases"
+      />
+    </div>
+
+    <div class="flex flex-col items-center justify-center mt-10 mb-16 px-4">
+      <p
+        class="relative font-primary text-2xl md:text-4xl text-text font-bold text-center"
+      >
+        <span class="text-accent">Perfect</span> {{ headerText.title }}
+      </p>
+      <p
+        class="relative text-text text-lg mt-4 font-primary font-semibold text-center"
+      >
+        {{ headerText.subtitle }}
+      </p>
+    </div>
+
+    <div
+  class="flex justify-center items-center px-4"
+  pAnimateOnScroll
+  enterClass="animate-enter fade-in-10 slide-in-from-b-8 animate-duration-1000"
+  leaveClass="animate-leave fade-out-0"
+>
+  <div class="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12 lg:gap-20 mt-10 md:ml-10 w-full">
+    @for (useCase of useCases; track useCase.title) {
+      <p-card
+        [styleClass]="
+          '!h-auto !w-full md:!w-96 !relative ' +
+          useCase.bgColor +
+          ' !bg-opacity-30 !pb-4'
+        "
+      >
+        <div [class]="useCase.iconBgColor + ' absolute m-4 rounded-lg'">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-8 w-8 text-white m-3"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              [attr.d]="useCase.iconPath"
+            ></path>
+          </svg>
+        </div>
+        <div
+          class="flex flex-col items-start justify-center relative text-text pl-4"
+        >
+          <p class="text-xl font-bold font-secondary mt-24">
+            {{ useCase.title }}
+          </p>
+          <p class="font-secondary mt-5">{{ useCase.description }}</p>
+          <ul class="list-disc pl-5">
+            @for (benefit of useCase.benefits; track benefit) {
+              <li class="font-secondary mt-5">{{ benefit }}</li>
+            }
+          </ul>
+        </div>
+      </p-card>
+    }
+  </div>
+</div>
+
+  } @placeholder {
+    <div>Loading...</div>
+  }
+</section>
