@@ -6,16 +6,27 @@ import {
   HttpRequest,
 } from '@angular/common/http';
 import { AuthService } from '../services/auth.service';
-import { catchError, Observable, switchMap, throwError } from 'rxjs';
+import {
+  catchError,
+  Observable,
+  switchMap,
+  throwError,
+  BehaviorSubject,
+  filter,
+  take,
+} from 'rxjs';
+
+let isRefreshing = false;
+let refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
 
 export const authInterceptor: HttpInterceptorFn = (
   req: HttpRequest<any>,
   next: HttpHandlerFn
 ): Observable<HttpEvent<any>> => {
   const authService = inject(AuthService);
-  const accessToken = localStorage.getItem('accessToken');
+  const accessToken = authService.getValidToken(); // Use the new validation method
 
-  // Attach access token to request headers if available
+  // Attach access token to request headers if available and valid
   if (accessToken) {
     req = req.clone({
       setHeaders: { Authorization: `Bearer ${accessToken}` },
@@ -25,41 +36,55 @@ export const authInterceptor: HttpInterceptorFn = (
   return next(req).pipe(
     catchError((error) => {
       if (error.status === 401) {
-        return handleAccessTokens(req, next, authService); // ✅ Call refresh logic
+        return handleAccessTokens(req, next, authService);
       }
       return throwError(() => error);
     })
   );
 };
 
-interface TokenResponse {
-  newAccessToken: {
-    accessToken: string;
-  };
-}
-
 const handleAccessTokens = (
   req: HttpRequest<unknown>,
   next: HttpHandlerFn,
   authService: AuthService
 ): Observable<HttpEvent<unknown>> => {
-  return authService.getAccessToken().pipe(
-    switchMap((response) => {
-      if (!response?.newAccessToken?.accessToken) {
-        return throwError(() => new Error('Invalid token response'));
-      }
+  if (!isRefreshing) {
+    isRefreshing = true;
+    refreshTokenSubject.next(null);
 
-      const newToken = response.newAccessToken.accessToken;
-      const clonedReq = req.clone({
-        setHeaders: { Authorization: `Bearer ${newToken}` },
-      });
+    return authService.getAccessToken().pipe(
+      switchMap((response) => {
+        if (!response?.newAccessToken?.accessToken) {
+          return throwError(() => new Error('Invalid token response'));
+        }
 
-      return next(clonedReq);
-    }),
-    catchError((err) => {
-      // If refresh token fails, redirect to login
-      authService.logOut();
-      return throwError(() => err);
-    })
-  );
+        isRefreshing = false;
+        const newToken = response.newAccessToken.accessToken;
+        refreshTokenSubject.next(newToken);
+
+        const clonedReq = req.clone({
+          setHeaders: { Authorization: `Bearer ${newToken}` },
+        });
+
+        return next(clonedReq);
+      }),
+      catchError((err) => {
+        isRefreshing = false;
+        authService.logOut();
+        return throwError(() => err);
+      })
+    );
+  } else {
+    // If already refreshing, wait for the new token
+    return refreshTokenSubject.pipe(
+      filter((token) => token != null),
+      take(1),
+      switchMap((token) => {
+        const clonedReq = req.clone({
+          setHeaders: { Authorization: `Bearer ${token}` },
+        });
+        return next(clonedReq);
+      })
+    );
+  }
 };

@@ -6,6 +6,7 @@ import { ImageUploadService } from '../../services/image-upload.service';
 import { jwtDecode } from 'jwt-decode';
 import { userData } from '../../models/user.interface';
 import { Router } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-navbar',
@@ -17,14 +18,17 @@ export class NavbarComponent implements OnInit {
   private getImageService = inject(ImageUploadService);
   private cdr = inject(ChangeDetectorRef);
   private router = inject(Router);
+  private authService = inject(AuthService);
   faSignOut = faSignOut;
   profileImageUrl: string = '';
 
   getProfileImage() {
-    const accessToken: string | null = localStorage.getItem('accessToken');
+    const accessToken = this.authService.getValidToken();
     if (!accessToken) {
-      throw new Error('Access token not found');
+      console.error('No valid access token found');
+      return;
     }
+
     const decodedToken: any = jwtDecode(accessToken);
     const userID = decodedToken.user_id;
     const userData = this.getImageService.getProfileImage(userID).subscribe({
