@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, catchError, throwError, BehaviorSubject } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Router } from '@angular/router';
 import { userLogInResponse } from '../models/user.interface';
@@ -17,6 +17,12 @@ export class AuthService {
   private OTP_URL = environment.OTP_API;
   private accessTokenKey = 'accessToken';
 
+  // BehaviorSubject to track authentication state
+  private isAuthenticatedSubject = new BehaviorSubject<boolean>(
+    this.isTokenValid()
+  );
+  public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
+
   // Add token validation methods
   isTokenValid(): boolean {
     const token = localStorage.getItem(this.accessTokenKey);
@@ -25,7 +31,8 @@ export class AuthService {
     try {
       const decodedToken: any = jwtDecode(token);
       const currentTime = Date.now() / 1000;
-      return decodedToken.exp > currentTime;
+      // Add buffer time (5 minutes) to refresh token before it expires
+      return decodedToken.exp > currentTime + 300;
     } catch {
       return false;
     }
@@ -35,8 +42,22 @@ export class AuthService {
     if (this.isTokenValid()) {
       return localStorage.getItem(this.accessTokenKey);
     }
-    this.logOut();
-    return null;
+    return null; // Don't auto-logout here, let interceptor handle it
+  }
+
+  // Check if token is expired or about to expire (within 5 minutes)
+  isTokenExpiringSoon(): boolean {
+    const token = localStorage.getItem(this.accessTokenKey);
+    if (!token) return true;
+
+    try {
+      const decodedToken: any = jwtDecode(token);
+      const currentTime = Date.now() / 1000;
+      const bufferTime = 300; // 5 minutes
+      return decodedToken.exp <= currentTime + bufferTime;
+    } catch {
+      return true;
+    }
   }
 
   // Add token expiration check that returns time until expiry
@@ -66,6 +87,7 @@ export class AuthService {
             this.accessTokenKey,
             response.data.tokens.accessToken
           );
+          this.isAuthenticatedSubject.next(true);
           this.router.navigate(['/dashboard']);
         })
       );
@@ -73,7 +95,8 @@ export class AuthService {
 
   logOut() {
     localStorage.removeItem(this.accessTokenKey);
-    localStorage.removeItem('userID'); // Clear userID as well
+    localStorage.removeItem('userID');
+    this.isAuthenticatedSubject.next(false);
     this.router.navigate(['']);
   }
 
@@ -98,6 +121,7 @@ export class AuthService {
             this.accessTokenKey,
             response.user.tokens.accessToken
           );
+          this.isAuthenticatedSubject.next(true);
           this.router.navigate(['/dashboard']);
         })
       );
@@ -117,8 +141,25 @@ export class AuthService {
               this.accessTokenKey,
               response.newAccessToken.accessToken
             );
+            this.isAuthenticatedSubject.next(true);
           }
+        }),
+        catchError((error) => {
+          // If refresh fails, user needs to login again
+          this.logOut();
+          return throwError(() => error);
         })
       );
+  }
+
+  // Method to manually refresh token if needed
+  refreshTokenIfNeeded(): Observable<any> {
+    if (this.isTokenExpiringSoon()) {
+      return this.getAccessToken();
+    }
+    return new Observable((observer) => {
+      observer.next(null);
+      observer.complete();
+    });
   }
 }

@@ -4,6 +4,7 @@ import {
   HttpHandlerFn,
   HttpInterceptorFn,
   HttpRequest,
+  HttpErrorResponse,
 } from '@angular/common/http';
 import { AuthService } from '../services/auth.service';
 import {
@@ -14,6 +15,7 @@ import {
   BehaviorSubject,
   filter,
   take,
+  finalize,
 } from 'rxjs';
 
 let isRefreshing = false;
@@ -24,26 +26,33 @@ export const authInterceptor: HttpInterceptorFn = (
   next: HttpHandlerFn
 ): Observable<HttpEvent<any>> => {
   const authService = inject(AuthService);
-  const accessToken = authService.getValidToken(); // Use the new validation method
+
+  // Skip auth for public endpoints
+  if (isPublicEndpoint(req.url)) {
+    return next(req);
+  }
+
+  const accessToken = authService.getValidToken();
 
   // Attach access token to request headers if available and valid
+  let authReq = req;
   if (accessToken) {
-    req = req.clone({
+    authReq = req.clone({
       setHeaders: { Authorization: `Bearer ${accessToken}` },
     });
   }
 
-  return next(req).pipe(
-    catchError((error) => {
-      if (error.status === 401) {
-        return handleAccessTokens(req, next, authService);
+  return next(authReq).pipe(
+    catchError((error: HttpErrorResponse) => {
+      if (error.status === 401 && !isPublicEndpoint(req.url)) {
+        return handleUnauthorizedError(authReq, next, authService);
       }
       return throwError(() => error);
     })
   );
 };
 
-const handleAccessTokens = (
+const handleUnauthorizedError = (
   req: HttpRequest<unknown>,
   next: HttpHandlerFn,
   authService: AuthService
@@ -58,10 +67,10 @@ const handleAccessTokens = (
           return throwError(() => new Error('Invalid token response'));
         }
 
-        isRefreshing = false;
         const newToken = response.newAccessToken.accessToken;
         refreshTokenSubject.next(newToken);
 
+        // Retry the original request with the new token
         const clonedReq = req.clone({
           setHeaders: { Authorization: `Bearer ${newToken}` },
         });
@@ -69,9 +78,12 @@ const handleAccessTokens = (
         return next(clonedReq);
       }),
       catchError((err) => {
-        isRefreshing = false;
+        // If refresh fails, redirect to login
         authService.logOut();
         return throwError(() => err);
+      }),
+      finalize(() => {
+        isRefreshing = false;
       })
     );
   } else {
@@ -87,4 +99,16 @@ const handleAccessTokens = (
       })
     );
   }
+};
+
+// Helper function to check if endpoint is public (doesn't need auth)
+const isPublicEndpoint = (url: string): boolean => {
+  const publicEndpoints = [
+    '/api/user/login',
+    '/api/user/register',
+    '/api/user/verify-otp',
+    '/api/user/refresh-token',
+  ];
+
+  return publicEndpoints.some((endpoint) => url.includes(endpoint));
 };
