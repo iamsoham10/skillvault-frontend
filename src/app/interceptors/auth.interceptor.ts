@@ -19,28 +19,51 @@ import {
 } from 'rxjs';
 
 let isRefreshing = false;
-let refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
+let refreshTokenSubject: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
 export const authInterceptor: HttpInterceptorFn = (
   req: HttpRequest<any>,
   next: HttpHandlerFn
 ): Observable<HttpEvent<any>> => {
   const authService = inject(AuthService);
-
+  
   // Skip auth for public endpoints
   if (isPublicEndpoint(req.url)) {
     return next(req);
   }
 
+  // Check if we have both tokens
   const accessToken = authService.getValidToken();
 
-  // Attach access token to request headers if available and valid
-  let authReq = req;
-  if (accessToken) {
-    authReq = req.clone({
-      setHeaders: { Authorization: `Bearer ${accessToken}` },
-    });
+  if (!accessToken) {
+    authService.logOut();
+    return throwError(() => new Error('Missing authentication tokens'));
   }
+
+  // Check if token is expiring soon and refresh proactively
+  if (authService.isTokenExpiringSoon()) {
+    return authService.getAccessToken().pipe(
+      switchMap(() => {
+        const newToken = authService.getValidToken();
+        if (newToken) {
+          const authReq = req.clone({
+            setHeaders: { Authorization: `Bearer ${newToken}` },
+          });
+          return next(authReq);
+        } else {
+          return throwError(() => new Error('Failed to get valid token'));
+        }
+      }),
+      catchError((error) => {
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // Attach access token to request headers
+  const authReq = req.clone({
+    setHeaders: { Authorization: `Bearer ${accessToken}` },
+  });
 
   return next(authReq).pipe(
     catchError((error: HttpErrorResponse) => {
@@ -57,17 +80,21 @@ const handleUnauthorizedError = (
   next: HttpHandlerFn,
   authService: AuthService
 ): Observable<HttpEvent<unknown>> => {
+  
   if (!isRefreshing) {
     isRefreshing = true;
     refreshTokenSubject.next(null);
 
     return authService.getAccessToken().pipe(
       switchMap((response) => {
+        
         if (!response?.newAccessToken?.accessToken) {
-          return throwError(() => new Error('Invalid token response'));
+          throw new Error('Invalid token response');
         }
 
         const newToken = response.newAccessToken.accessToken;
+        
+        // Notify all waiting requests about the new token
         refreshTokenSubject.next(newToken);
 
         // Retry the original request with the new token
@@ -78,7 +105,8 @@ const handleUnauthorizedError = (
         return next(clonedReq);
       }),
       catchError((err) => {
-        // If refresh fails, redirect to login
+        // Clear the subject before logging out
+        refreshTokenSubject.next(null);
         authService.logOut();
         return throwError(() => err);
       }),
@@ -87,9 +115,9 @@ const handleUnauthorizedError = (
       })
     );
   } else {
-    // If already refreshing, wait for the new token
+    // If already refreshing, wait for the new token    
     return refreshTokenSubject.pipe(
-      filter((token) => token != null),
+      filter((token) => token !== null),
       take(1),
       switchMap((token) => {
         const clonedReq = req.clone({
@@ -101,14 +129,14 @@ const handleUnauthorizedError = (
   }
 };
 
-// Helper function to check if endpoint is public (doesn't need auth)
+// Helper function to check if endpoint is public
 const isPublicEndpoint = (url: string): boolean => {
   const publicEndpoints = [
     '/api/user/login',
     '/api/user/register',
     '/api/user/verify-otp',
-    '/api/user/refresh-token',
+    '/api/user/refresh-token'
   ];
-
-  return publicEndpoints.some((endpoint) => url.includes(endpoint));
+  
+  return publicEndpoints.some(endpoint => url.includes(endpoint));
 };

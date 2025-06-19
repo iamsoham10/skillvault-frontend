@@ -5,6 +5,7 @@ import { environment } from '../../environments/environment';
 import { Router } from '@angular/router';
 import { userLogInResponse } from '../models/user.interface';
 import { jwtDecode } from 'jwt-decode';
+import { interval, Subscription } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -16,6 +17,12 @@ export class AuthService {
   private SIGNUP_URL = environment.SIGNUP_API;
   private OTP_URL = environment.OTP_API;
   private accessTokenKey = 'accessToken';
+  private refreshTokenKey = 'refreshToken';
+  private refreshTokenSubscription?: Subscription;
+
+  constructor() {
+    this.startProactiveTokenRefresh();
+  }
 
   // BehaviorSubject to track authentication state
   private isAuthenticatedSubject = new BehaviorSubject<boolean>(
@@ -31,7 +38,6 @@ export class AuthService {
     try {
       const decodedToken: any = jwtDecode(token);
       const currentTime = Date.now() / 1000;
-      // Add buffer time (5 minutes) to refresh token before it expires
       return decodedToken.exp > currentTime + 300;
     } catch {
       return false;
@@ -42,7 +48,12 @@ export class AuthService {
     if (this.isTokenValid()) {
       return localStorage.getItem(this.accessTokenKey);
     }
-    return null; // Don't auto-logout here, let interceptor handle it
+    return null;
+  }
+
+  // Get refresh token from localStorage (fallback)
+  getRefreshToken(): string | null {
+    return localStorage.getItem(this.refreshTokenKey);
   }
 
   // Check if token is expired or about to expire (within 5 minutes)
@@ -67,10 +78,22 @@ export class AuthService {
 
     try {
       const decodedToken: any = jwtDecode(token);
-      return decodedToken.exp * 1000; // Convert to milliseconds
+      return decodedToken.exp * 1000;
     } catch {
       return null;
     }
+  }
+
+  private startProactiveTokenRefresh(): void {
+    this.refreshTokenSubscription = interval(240000).subscribe(() => {
+      if (this.isTokenValid() && this.isTokenExpiringSoon()) {
+        this.getAccessToken().subscribe({
+          next: () => console.log('Token refreshed proactively'),
+          error: (error) =>
+            console.error('Proactive token refresh failed:', error),
+        });
+      }
+    });
   }
 
   login(credentials: {
@@ -83,20 +106,33 @@ export class AuthService {
       })
       .pipe(
         tap((response) => {
+          // Store access token
           localStorage.setItem(
             this.accessTokenKey,
             response.data.tokens.accessToken
           );
+          
+          // Store refresh token as fallback (in case HTTP-only cookie fails)
+          localStorage.setItem(
+            this.refreshTokenKey,
+            response.data.tokens.refreshToken
+          );
           this.isAuthenticatedSubject.next(true);
+          this.startProactiveTokenRefresh();
           this.router.navigate(['/dashboard']);
+        }),
+        catchError((error) => {
+          return throwError(() => error);
         })
       );
   }
 
   logOut() {
     localStorage.removeItem(this.accessTokenKey);
+    localStorage.removeItem(this.refreshTokenKey);
     localStorage.removeItem('userID');
     this.isAuthenticatedSubject.next(false);
+    this.refreshTokenSubscription?.unsubscribe();
     this.router.navigate(['']);
   }
 
@@ -110,19 +146,30 @@ export class AuthService {
 
   otp(credentials: { email: string; otp: string }): Observable<Object> {
     return this.http
-      .post<{ user: { tokens: { accessToken: string } } }>(
+      .post<{ user: { tokens: { accessToken: string; refreshToken: string } } }>(
         this.OTP_URL,
         credentials,
         { withCredentials: true }
       )
       .pipe(
-        tap((response) => {
+        tap((response) => {          
+          // Store access token
           localStorage.setItem(
             this.accessTokenKey,
             response.user.tokens.accessToken
           );
+          
+          // Store refresh token as fallback (in case HTTP-only cookie fails)
+          localStorage.setItem(
+            this.refreshTokenKey,
+            response.user.tokens.refreshToken
+          );
           this.isAuthenticatedSubject.next(true);
+          this.startProactiveTokenRefresh();
           this.router.navigate(['/dashboard']);
+        }),
+        catchError((error) => {
+          return throwError(() => error);
         })
       );
   }
@@ -131,8 +178,13 @@ export class AuthService {
     return this.http
       .post<{ newAccessToken: { accessToken: string } }>(
         environment.NEW_ACCESS_TOKEN_API,
-        {},
-        { withCredentials: true }
+        {}, // Empty body - rely on HTTP-only cookie
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
       )
       .pipe(
         tap((response) => {
@@ -145,11 +197,56 @@ export class AuthService {
           }
         }),
         catchError((error) => {
-          // If refresh fails, user needs to login again
-          this.logOut();
+          if (error.status === 401 || error.status === 403) {
+            return this.getAccessTokenWithBody();
+          }
+          
           return throwError(() => error);
         })
       );
+  }
+
+  // Fallback method using refresh token in request body
+  private getAccessTokenWithBody(): Observable<{ newAccessToken: { accessToken: string } }> {
+    const refreshToken = this.getRefreshToken();
+    
+    if (!refreshToken) {
+      this.logOut();
+      return throwError(() => new Error('No refresh token available'));
+    }
+    return this.http
+      .post<{ newAccessToken: { accessToken: string } }>(
+        environment.NEW_ACCESS_TOKEN_API,
+        { refreshToken: refreshToken }, // Send in request body
+        {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+      .pipe(
+        tap((response) => {
+          if (response?.newAccessToken?.accessToken) {
+            localStorage.setItem(
+              this.accessTokenKey,
+              response.newAccessToken.accessToken
+            );
+            this.isAuthenticatedSubject.next(true);
+          }
+        }),
+        catchError((error) => { 
+          if (error.status === 401 || error.status === 403) {
+            this.logOut();
+          }
+          
+          return throwError(() => error);
+        })
+      );
+  }
+
+  isUserAuthenticated(): boolean {
+    return this.isTokenValid() || this.isTokenExpiringSoon();
   }
 
   // Method to manually refresh token if needed
